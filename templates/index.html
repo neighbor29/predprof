@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Марсианская карта</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #ffffff;
+            color: #000000;
+            text-align: center;
+        }
+        #map {
+            width: 100%;
+            height: 600px;
+            margin-top: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border: 1px solid #ADD8E6;
+            position: relative;
+        }
+        .controls {
+            margin-top: 20px;
+        }
+        .controls button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.2s ease, transform 0.2s ease;
+            margin: 5px;
+        }
+        .controls button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <h1>Марсианская карта</h1>
+    <div id="map"></div>
+    <div class="controls">
+        <button onclick="loadMap()">Загрузить карту</button>
+        <button onclick="placeStations()">Разместить станции</button>
+    </div>
+
+    <script>
+        let map;
+        let stations = [];
+
+
+        async function loadMap() {
+            try {
+                const response = await fetch('/get_map');
+                if (!response.ok) throw new Error('Ошибка при загрузке карты');
+                const data = await response.json();
+                console.log("Данные карты получены:", data);
+                renderMap(data);
+            } catch (error) {
+                console.error("Ошибка:", error);
+                alert("Не удалось загрузить карту. Пожалуйста, попробуйте снова.");
+            }
+        }
+
+
+        async function placeStations() {
+            try {
+                const response = await fetch('/place_stations', { method: 'POST' });
+                if (!response.ok) throw new Error('Ошибка при размещении станций');
+                const data = await response.json();
+                console.log("Станции получены:", data);
+                stations = data;
+                renderStations();
+            } catch (error) {
+                console.error("Ошибка:", error);
+                alert("Не удалось разместить станции. Пожалуйста, попробуйте снова.");
+            }
+        }
+
+
+        function renderMap(mapData) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            const imageData = ctx.createImageData(256, 256);
+
+            for (let y = 0; y < 256; y++) {
+                for (let x = 0; x < 256; x++) {
+                    const value = mapData[y][x];
+                    const index = (y * 256 + x) * 4;
+
+
+                    imageData.data[index] = value;
+                    imageData.data[index + 1] = 0;
+                    imageData.data[index + 2] = 0;
+                    imageData.data[index + 3] = 255;
+                }
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+            const mapDiv = document.getElementById('map');
+            mapDiv.innerHTML = '';
+            mapDiv.appendChild(canvas);
+        }
+
+
+        function renderStations() {
+            const mapDiv = document.getElementById('map');
+            stations.forEach(station => {
+                const marker = document.createElement('div');
+                marker.style.position = 'absolute';
+                marker.style.left = `${station.x}px`;
+                marker.style.top = `${station.y}px`;
+                marker.style.width = '10px';
+                marker.style.height = '10px';
+                marker.style.backgroundColor = station.type === 'Купер' ? 'green' : 'blue';
+                marker.style.borderRadius = '50%';
+                mapDiv.appendChild(marker);
+            });
+        }
+    </script>
+</body>
+</html>
